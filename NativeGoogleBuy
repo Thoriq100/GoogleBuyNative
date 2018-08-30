@@ -1,0 +1,35 @@
+buyGoogleProduct = async id => {
+  const response = await new Promise((resolve, reject) => {
+    let repurchaseTries = 0;
+    const maxRepurchaseTries = 2;
+
+    const buyInAppProduct = async () => {
+      try {
+        const purchase = await InAppBilling.purchase(id);
+        resolve(purchase);
+      } catch (error) {
+        if (error.message === 'Purchase or subscribe failed with error: 102') {
+          if (repurchaseTries >= maxRepurchaseTries) {
+            reject(new Error(`Failed to purchase ${id} after ${maxRepurchaseTries} retries.`));
+          } else {
+            repurchaseTries += 1;
+            buyInAppProduct();
+          }
+        } else if (error.message === 'Purchase or subscribe failed with error: 6') {
+          // Communicate to the user that the payment was declined
+        } else if (error.message === 'Purchase or subscribe failed with error: 1') {
+          // Communicate to the user that the payment was cancelled
+        }
+      }
+    };
+    buyInAppProduct();
+  });
+
+  let result;
+  if (response.purchaseState === 'PurchasedSuccessfully') {
+    result = response;
+  } else {
+    result = Promise.reject(new Error(response.purchaseState));
+  }
+  return result;
+}
